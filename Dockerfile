@@ -11,8 +11,15 @@ RUN mkdir -p /app/nanobot/web && npm run build
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates git bubblewrap openssh-client libmagic1 && \
+    apt-get install -y --no-install-recommends ca-certificates git bubblewrap openssh-client libmagic1 curl && \
     rm -rf /var/lib/apt/lists/*
+
+# Install kubectl (static binary, no cluster config baked in).
+# KUBECONFIG is expected to be provided at runtime via env var or a mounted volume.
+ARG KUBECTL_VERSION=v1.33.0
+RUN curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
+    chmod +x /usr/local/bin/kubectl && \
+    kubectl version --client
 
 WORKDIR /app
 
