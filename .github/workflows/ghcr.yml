@@ -106,14 +106,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create manifest list
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          create-manifest: true
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          images: |
-            ghcr.io/${{ github.repository_owner }}/nanobot:tmp-amd64
-            ghcr.io/${{ github.repository_owner }}/nanobot:tmp-arm64v8
+      - name: Create multi-arch manifest list
+        run: |
+          TAGS=()
+          while IFS= read -r tag; do
+            TAGS+=("$tag")
+          done < <(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' | sed 's/^ *//')
+          for tag in "${TAGS[@]}"; do
+            docker buildx imagetools create               -t "$tag"               "ghcr.io/${{ github.repository_owner }}/nanobot:tmp-amd64"               "ghcr.io/${{ github.repository_owner }}/nanobot:tmp-arm64v8"
+          done
