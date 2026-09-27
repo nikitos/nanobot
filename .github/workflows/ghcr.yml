@@ -115,5 +115,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           images: |
-            ghcr.io/${{ github.repository_owner }}/nanobot:tmp-linux/amd64
-            ghcr.io/${{ github.repository_owner }}/nanobot:tmp-linux/arm64/v8
+            ghcr.io/${{ github.repository_owner }}/nanobot:tmp-amd64
+            ghcr.io/${{ github.repository_owner }}/nanobot:tmp-arm64v8
