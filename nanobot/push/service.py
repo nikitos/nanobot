@@ -27,7 +27,9 @@ _SKIP_STATUSES = {429}
 
 # VAPID requires a "sub" claim; Apple's push service rejects placeholder
 # domains like @localhost (403 BadJwtToken), so use a real domain.
-_VAPID_SUBSCRIBER = "mailto:nanobot@hublab.ru"
+# NB: the ``webpush`` library prepends ``mailto:`` automatically,
+# so we must NOT include it here (Apple rejects ``mailto:mailto:…``).
+_VAPID_SUBSCRIBER = "nanobot@lm.hublab.ru"
 _REQUEST_TIMEOUT = 10.0
 
 
