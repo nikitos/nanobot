@@ -25,8 +25,9 @@ _DEAD_STATUSES = {404, 410}
 # 429 = rate limited: skip, but keep the subscription.
 _SKIP_STATUSES = {429}
 
-# VAPID requires a "sub" claim; use a stable mailto URI.
-_VAPID_SUBSCRIBER = "mailto:nanobot@localhost"
+# VAPID requires a "sub" claim; Apple's push service rejects placeholder
+# domains like @localhost (403 BadJwtToken), so use a real domain.
+_VAPID_SUBSCRIBER = "mailto:nanobot@hublab.ru"
 _REQUEST_TIMEOUT = 10.0
 
 
