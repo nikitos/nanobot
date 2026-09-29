@@ -4,8 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Extra tag (default: latest on main)"
+        description: "Image tag to push (required)"
+        required: true
+        default: "latest"
+      ref:
+        description: "Branch, tag or commit SHA to build (default: main)"
         required: false
+        default: "main"
   push:
     branches: [main]
     tags: ['v*']
@@ -31,6 +36,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -61,7 +68,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
