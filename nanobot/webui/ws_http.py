@@ -523,11 +523,11 @@ class GatewayHTTPHandler:
             return True
         if path in {"/api/webui/recovery/continue", "/api/webui/recovery/dismiss"}:
             return True
-        if path in {
-            "/api/webui/push/subscribe",
-            "/api/webui/push/test",
-        }:
-            return True
+        # NOTE: /api/webui/push/subscribe and /api/webui/push/test are
+        # intentionally NOT WebUI-WS mutations — the browser push flow calls
+        # them over plain HTTP with an issued api_token (see
+        # _handle_push_subscribe / _handle_push_test, which authenticate
+        # themselves via check_api_token).
         return path in {
             "/api/webui/skills/install",
             "/api/webui/skills/update",
