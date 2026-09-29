@@ -1748,6 +1748,7 @@ class GatewayHTTPHandler:
             # Subscribe: endpoint + keys provided
             if not isinstance(keys, dict):
                 return _http_error(400, "missing keys")
+            keys = cast(dict[str, Any], keys)
             p256dh = keys.get("p256dh")
             auth = keys.get("auth")
             if not isinstance(p256dh, str) or not p256dh:

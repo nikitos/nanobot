@@ -32,7 +32,7 @@ def _spawn(coro: Coroutine[Any, Any, None]) -> None:
     task.add_done_callback(_log_task_error)
 
 
-def _log_task_error(task: asyncio.Task) -> None:
+def _log_task_error(task: asyncio.Task[None]) -> None:
     if task.cancelled():
         return
     exc = task.exception()

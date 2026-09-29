@@ -13,7 +13,7 @@ import logging
 from typing import Any
 
 import httpx
-from webpush import WebPush, WebPushException, WebPushSubscription
+from webpush import WebPush, WebPushException, WebPushSubscription  # type: ignore[import-untyped]
 
 from nanobot.push.store import SubscriptionStore
 from nanobot.push.vapid import VapidKeys, load_or_create_vapid_keys

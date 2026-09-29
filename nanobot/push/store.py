@@ -15,7 +15,7 @@ import threading
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from nanobot.config.paths import get_runtime_subdir
 
@@ -63,17 +63,17 @@ class SubscriptionStore:
             return
         if not isinstance(raw, list):
             return
-        entries: list[Any] = raw
-        for entry in entries:
+        for entry in cast(list[object], raw):
             if not isinstance(entry, dict):
                 continue
+            entry = cast(dict[str, object], entry)
             try:
                 self._subscriptions.append(
                     PushSubscription(
                         endpoint=str(entry["endpoint"]),
                         p256dh=str(entry["p256dh"]),
                         auth=str(entry["auth"]),
-                        created_at=float(entry.get("created_at", 0.0)),
+                        created_at=float(cast(float, entry.get("created_at", 0.0))),
                     )
                 )
             except (KeyError, TypeError, ValueError):
