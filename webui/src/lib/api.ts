@@ -779,41 +779,39 @@ export async function fetchPushVapidKey(token: string, base: string = ""): Promi
 }
 
 export async function subscribePush(
-  token: string,
+  transport: WebUIMutationTransport,
   subscription: PushSubscriptionInfo,
-  base: string = "",
 ): Promise<{ added: boolean }> {
-  return request<{ added: boolean }>(
-    `${base}/api/webui/push/subscribe`,
-    token,
+  return mutation<{ added: boolean }>(
+    transport,
+    "push.subscribe",
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription),
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      },
     },
   );
 }
 
 export async function unsubscribePush(
-  token: string,
+  transport: WebUIMutationTransport,
   endpoint: string,
-  base: string = "",
 ): Promise<{ removed: boolean }> {
-  return request<{ removed: boolean }>(
-    `${base}/api/webui/push/subscribe`,
-    token,
-    { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint }) },
+  return mutation<{ removed: boolean }>(
+    transport,
+    "push.unsubscribe",
+    { endpoint },
   );
 }
 
 export async function sendPushTest(
-  token: string,
-  base: string = "",
+  transport: WebUIMutationTransport,
 ): Promise<{ sent: number; failed: number }> {
-  return request<{ sent: number; failed: number }>(
-    `${base}/api/webui/push/test`,
-    token,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+  return mutation<{ sent: number; failed: number }>(
+    transport,
+    "push.test",
   );
 }
 

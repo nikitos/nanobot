@@ -49,7 +49,9 @@ async function getSubscription(): Promise<PushSubscription | null> {
 }
 
 export function usePushNotifications(enabled: boolean): UsePushNotifications {
-  const { token } = useClient();
+  const { client, token } = useClient();
+  const clientRef = useRef(client);
+  clientRef.current = client;
   const tokenRef = useRef(token);
   tokenRef.current = token;
   const [status, setStatus] = useState<PushNotificationsStatus>("idle");
@@ -98,7 +100,7 @@ export function usePushNotifications(enabled: boolean): UsePushNotifications {
       });
       const json = subscription.toJSON();
       if (!json || !json.endpoint) throw new Error("Push subscription is missing details.");
-      await subscribePush(tokenRef.current, {
+      await subscribePush(clientRef.current, {
         endpoint: json.endpoint,
         keys: {
           p256dh: json.keys?.p256dh ?? "",
@@ -124,7 +126,7 @@ export function usePushNotifications(enabled: boolean): UsePushNotifications {
     try {
       const subscription = await getSubscription();
       if (subscription) {
-        await unsubscribePush(tokenRef.current, subscription.endpoint);
+        await unsubscribePush(clientRef.current, subscription.endpoint);
         await subscription.unsubscribe();
       }
       setStatus("idle");

@@ -63,7 +63,8 @@ class SubscriptionStore:
             return
         if not isinstance(raw, list):
             return
-        for entry in raw:
+        entries: list[Any] = raw
+        for entry in entries:
             if not isinstance(entry, dict):
                 continue
             try:

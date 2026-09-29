@@ -9,22 +9,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Coroutine
+from typing import Any
 
 log = logging.getLogger(__name__)
 
 _WEBUI_CHANNEL = "websocket"
 
 
-def _spawn(coro) -> None:
+def _spawn(coro: Coroutine[Any, Any, None]) -> None:
     """Run a coroutine in the background; log and swallow all errors."""
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         # No event loop (e.g. CLI context) — run synchronously.
         try:
-            coro.send(None)
-        except StopIteration:
-            pass
+            asyncio.run(coro)
         except Exception:
             log.exception("push trigger (sync) failed")
         return

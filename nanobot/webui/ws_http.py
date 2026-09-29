@@ -523,11 +523,6 @@ class GatewayHTTPHandler:
             return True
         if path in {"/api/webui/recovery/continue", "/api/webui/recovery/dismiss"}:
             return True
-        # NOTE: /api/webui/push/subscribe and /api/webui/push/test are
-        # intentionally NOT WebUI-WS mutations — the browser push flow calls
-        # them over plain HTTP with an issued api_token (see
-        # _handle_push_subscribe / _handle_push_test, which authenticate
-        # themselves via check_api_token).
         return path in {
             "/api/webui/skills/install",
             "/api/webui/skills/update",
@@ -536,6 +531,8 @@ class GatewayHTTPHandler:
             "/api/webui/star-prompt/dismiss",
             "/api/webui/sidebar-state/update",
             "/api/workspaces/pick-folder",
+            "/api/webui/push/subscribe",
+            "/api/webui/push/test",
         }
 
     @staticmethod
@@ -1737,24 +1734,26 @@ class GatewayHTTPHandler:
         if payload is None:
             return _http_error(400, "missing payload")
         endpoint = payload.get("endpoint")
-        keys = payload.get("keys")
         if not isinstance(endpoint, str) or not endpoint:
             return _http_error(400, "missing endpoint")
-        if not isinstance(keys, dict):
-            return _http_error(400, "missing keys")
-        p256dh = keys.get("p256dh")
-        auth = keys.get("auth")
-        if not isinstance(p256dh, str) or not p256dh:
-            return _http_error(400, "missing keys.p256dh")
-        if not isinstance(auth, str) or not auth:
-            return _http_error(400, "missing keys.auth")
+        keys = payload.get("keys")
         try:
             from nanobot.push import get_push_service
 
             store = get_push_service().store
-            if request.method == "DELETE":
+            if keys is None:
+                # Unsubscribe: only endpoint provided
                 removed = store.remove(endpoint)
                 return _http_json_response({"removed": removed})
+            # Subscribe: endpoint + keys provided
+            if not isinstance(keys, dict):
+                return _http_error(400, "missing keys")
+            p256dh = keys.get("p256dh")
+            auth = keys.get("auth")
+            if not isinstance(p256dh, str) or not p256dh:
+                return _http_error(400, "missing keys.p256dh")
+            if not isinstance(auth, str) or not auth:
+                return _http_error(400, "missing keys.auth")
             added = store.add(endpoint, p256dh, auth)
             return _http_json_response({"added": added})
         except Exception:
