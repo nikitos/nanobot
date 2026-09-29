@@ -758,6 +758,65 @@ export async function fetchApiService(token: string, base: string = ""): Promise
   return request<ApiServicePayload>(`${base}/api/settings/api-service`, token);
 }
 
+// -- Web Push ---------------------------------------------------------------
+
+export interface PushVapidKey {
+  publicKey: string;
+}
+
+export interface PushSubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
+export interface PushSubscriptionInfo {
+  endpoint: string;
+  keys: PushSubscriptionKeys;
+}
+
+export async function fetchPushVapidKey(token: string, base: string = ""): Promise<PushVapidKey> {
+  return request<PushVapidKey>(`${base}/api/webui/push/vapid-public-key`, token);
+}
+
+export async function subscribePush(
+  token: string,
+  subscription: PushSubscriptionInfo,
+  base: string = "",
+): Promise<{ added: boolean }> {
+  return request<{ added: boolean }>(
+    `${base}/api/webui/push/subscribe`,
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription),
+    },
+  );
+}
+
+export async function unsubscribePush(
+  token: string,
+  endpoint: string,
+  base: string = "",
+): Promise<{ removed: boolean }> {
+  return request<{ removed: boolean }>(
+    `${base}/api/webui/push/subscribe`,
+    token,
+    { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint }) },
+  );
+}
+
+export async function sendPushTest(
+  token: string,
+  base: string = "",
+): Promise<{ sent: number; failed: number }> {
+  return request<{ sent: number; failed: number }>(
+    `${base}/api/webui/push/test`,
+    token,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+  );
+}
+
 export async function startApiService(
   transport: WebUIMutationTransport,
   values: { host: string; port: number; timeout: number; apiKey?: string },

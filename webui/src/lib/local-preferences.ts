@@ -7,6 +7,7 @@ export interface LocalPreferences {
   brandLogos: boolean;
   browserNotifications: boolean;
   notificationSound: boolean;
+  pushNotifications: boolean;
   fileEditDisplayMode: FileEditDisplayMode;
 }
 
@@ -24,6 +25,7 @@ export const DEFAULT_LOCAL_PREFS: LocalPreferences = {
   brandLogos: true,
   browserNotifications: false,
   notificationSound: false,
+  pushNotifications: false,
   fileEditDisplayMode: "summary",
 };
 
@@ -44,6 +46,7 @@ export function readLocalPreferences(): LocalPreferences {
         : true,
       browserNotifications: parsed.browserNotifications === true,
       notificationSound: parsed.notificationSound === true,
+      pushNotifications: parsed.pushNotifications === true,
       fileEditDisplayMode: normalizeFileEditDisplayMode(parsed.fileEditDisplayMode),
     };
   } catch {
