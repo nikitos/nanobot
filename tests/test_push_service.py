@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import base64
-import json
 import os
 from pathlib import Path
 
-import pytest
 import httpx
+import pytest
 
 from nanobot.push.service import PushService, get_push_service, register_push_service
 from nanobot.push.store import SubscriptionStore
 from nanobot.push.vapid import VapidKeys, load_or_create_vapid_keys
-
 
 # -- VAPID ------------------------------------------------------------------
 
