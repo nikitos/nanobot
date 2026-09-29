@@ -104,3 +104,24 @@ def push_subagent_completed(
     push_webui_notification(
         channel, title, body, url="/", tag=f"subagent-{label}"
     )
+
+
+def push_turn_completed(
+    channel: str | None,
+    *,
+    outcome: str = "completed",
+    snippet: str | None = None,
+) -> None:
+    """Notify the WebUI that an agent turn finished.
+
+    Only fires for the websocket (WebUI) channel. The snippet is an
+    optional short excerpt of the response for the notification body.
+    """
+    title = "nanobot"
+    if outcome == "completed":
+        body = snippet or "Готово."
+    else:
+        body = "Turn finished with an error."
+    push_webui_notification(
+        channel, title, body, url="/", tag="turn-complete"
+    )

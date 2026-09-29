@@ -352,6 +352,23 @@ class TurnDelivery:
             )
         if publish_completion:
             outcome, failure_kind = _turn_outcome(stop_reason)
+            # Web Push: notify the WebUI when a turn finishes (iOS/Safari
+            # cannot use in-page Notification, so the push service is the
+            # only reliable path for background tabs).
+            if completed_channel == "websocket" and outcome == "completed":
+                try:
+                    from nanobot.push.triggers import push_turn_completed
+                    snippet = None
+                    if response is not None and response.content:
+                        text = response.content.strip()
+                        if len(text) > 120:
+                            text = text[:117] + "…"
+                        snippet = text
+                    push_turn_completed(
+                        completed_channel, outcome=outcome, snippet=snippet
+                    )
+                except Exception:
+                    pass  # push must never break the turn
             await self.runtime_event_publisher.turn_completed(
                 channel=completed_channel,
                 chat_id=completed_chat_id,
