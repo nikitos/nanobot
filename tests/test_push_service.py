@@ -20,7 +20,9 @@ def test_vapid_keys_generated_and_persisted(tmp_path: Path) -> None:
     path = tmp_path / "vapid.json"
     keys = load_or_create_vapid_keys(path)
     assert path.exists()
-    assert oct(os.stat(path).st_mode & 0o777) == "0o600"
+    if os.name != "nt":
+        # Windows ignores POSIX permission bits (always reports 0o666).
+        assert oct(os.stat(path).st_mode & 0o777) == "0o600"
     # P-256 uncompressed point: 65 bytes -> 88 urlsafe base64 chars.
     raw = base64.urlsafe_b64decode(keys.public_key + "=" * (-len(keys.public_key) % 4))
     assert len(raw) == 65 and raw[0] == 0x04
