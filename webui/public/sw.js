@@ -75,6 +75,52 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+// -- Web Push ---------------------------------------------------------------
+// The gateway sends JSON payloads: { title, body, url, tag }. Notifications
+// are only produced for significant events (cron jobs, subagents, explicit
+// requests), never for every chat reply.
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { title: "nanobot", body: event.data.text() };
+    }
+  }
+  const title = data.title || "nanobot";
+  const body = data.body || "";
+  const url = data.url || "/";
+  const tag = data.tag || undefined;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      icon: "/brand/nanobot_icon_192.png",
+      badge: "/brand/nanobot_icon_192.png",
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(url);
+          return;
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
 // Collect same-origin paths referenced by the given HTML document.
 function referencedAssetPaths(html) {
   const refs = new Set();

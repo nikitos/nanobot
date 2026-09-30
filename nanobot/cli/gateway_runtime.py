@@ -690,7 +690,27 @@ def _run_gateway(
             return response
 
         if is_bound_cron_job(job):
-            return await run_bound_cron_job(job, agent=agent, cron=cron)
+            from nanobot.cron.session_delivery import origin_delivery_context
+            from nanobot.push.triggers import push_cron_completed
+
+            try:
+                origin_channel = origin_delivery_context(job)[0]
+            except ValueError:
+                origin_channel = None
+            try:
+                result = await run_bound_cron_job(job, agent=agent, cron=cron)
+            except BaseException as exc:
+                # Web Push: notify the WebUI about the failure, then re-raise.
+                # Never raises itself; only sends when origin is websocket.
+                push_cron_completed(
+                    job.name, "error", channel=origin_channel,
+                    error=str(exc) or exc.__class__.__name__,
+                )
+                raise
+            else:
+                # Web Push: notify the WebUI when a bound cron job finishes.
+                push_cron_completed(job.name, "ok", channel=origin_channel)
+            return result
 
         reason = "unbound agent cron job must be recreated from a chat session"
         logger.warning(

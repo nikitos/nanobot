@@ -758,6 +758,63 @@ export async function fetchApiService(token: string, base: string = ""): Promise
   return request<ApiServicePayload>(`${base}/api/settings/api-service`, token);
 }
 
+// -- Web Push ---------------------------------------------------------------
+
+export interface PushVapidKey {
+  publicKey: string;
+}
+
+export interface PushSubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
+export interface PushSubscriptionInfo {
+  endpoint: string;
+  keys: PushSubscriptionKeys;
+}
+
+export async function fetchPushVapidKey(token: string, base: string = ""): Promise<PushVapidKey> {
+  return request<PushVapidKey>(`${base}/api/webui/push/vapid-public-key`, token);
+}
+
+export async function subscribePush(
+  transport: WebUIMutationTransport,
+  subscription: PushSubscriptionInfo,
+): Promise<{ added: boolean }> {
+  return mutation<{ added: boolean }>(
+    transport,
+    "push.subscribe",
+    {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      },
+    },
+  );
+}
+
+export async function unsubscribePush(
+  transport: WebUIMutationTransport,
+  endpoint: string,
+): Promise<{ removed: boolean }> {
+  return mutation<{ removed: boolean }>(
+    transport,
+    "push.unsubscribe",
+    { endpoint },
+  );
+}
+
+export async function sendPushTest(
+  transport: WebUIMutationTransport,
+): Promise<{ sent: number; failed: number }> {
+  return mutation<{ sent: number; failed: number }>(
+    transport,
+    "push.test",
+  );
+}
+
 export async function startApiService(
   transport: WebUIMutationTransport,
   values: { host: string; port: number; timeout: number; apiKey?: string },

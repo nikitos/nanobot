@@ -499,6 +499,13 @@ class SubagentManager:
                     final_status,
                     origin_message_id,
                 )
+            # Web Push: notify the WebUI when a subagent task finishes.
+            # Never raises; only sends when the origin channel is websocket.
+            from nanobot.push.triggers import push_subagent_completed
+
+            push_subagent_completed(
+                label, final_status, channel=origin.get("channel")
+            )
             return final_result
 
         except Exception as e:
@@ -516,6 +523,9 @@ class SubagentManager:
                     "error",
                     origin_message_id,
                 )
+            from nanobot.push.triggers import push_subagent_completed
+
+            push_subagent_completed(label, "error", channel=origin.get("channel"))
             return final_result
 
     async def _announce_result(

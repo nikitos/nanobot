@@ -31,6 +31,7 @@ import { ToggleButton } from "@/components/settings/ToggleButton";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useLogoFallback } from "@/hooks/useLogoFallback";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { checkVersion } from "@/lib/api";
 import type {
   FileEditDisplayMode,
@@ -163,6 +164,43 @@ export function AboutSettings({ currentVersion }: { currentVersion?: string }) {
         <StarLink />
       </div>
     </div>
+  );
+}
+
+function PushNotificationsRow({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const tx = (key: string, fallback: string) => t(key, { defaultValue: fallback });
+  const { status, error, enable, disable } = usePushNotifications(enabled);
+  const busy = status === "enabling" || status === "disabling";
+  const label = enabled ? tx("settings.values.on", "On") : tx("settings.values.off", "Off");
+  return (
+    <SettingsRow
+      title={tx("settings.rows.pushNotifications", "Push notifications")}
+      description={
+        error ??
+        tx(
+          "settings.help.pushNotifications",
+          "Send browser push notifications for cron jobs, subagents, and background turns. Off by default.",
+        )
+      }
+    >
+      <ToggleButton
+        checked={enabled}
+        disabled={busy || status === "unsupported"}
+        onChange={async (next) => {
+          const ok = next ? await enable() : await disable();
+          if (ok) onChange(next);
+        }}
+        ariaLabel={tx("settings.rows.pushNotifications", "Push notifications")}
+        label={status === "unsupported" ? tx("settings.values.unavailable", "Unavailable") : label}
+      />
+    </SettingsRow>
   );
 }
 
@@ -401,6 +439,12 @@ export function AppearanceSettings({
                 : tx("settings.values.off", "Off")}
             />
           </SettingsRow>
+          <PushNotificationsRow
+            enabled={localPrefs.pushNotifications}
+            onChange={(pushNotifications) =>
+              onChangeLocalPrefs((prev) => ({ ...prev, pushNotifications }))
+            }
+          />
         </SettingsGroup>
       </section>
     </div>

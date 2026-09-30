@@ -174,6 +174,9 @@ _WEBUI_MUTATION_PATHS = {
     "skill.delete": "/api/webui/skills/delete",
     "star_prompt.claim": "/api/webui/star-prompt/claim",
     "star_prompt.dismiss": "/api/webui/star-prompt/dismiss",
+    "push.subscribe": "/api/webui/push/subscribe",
+    "push.unsubscribe": "/api/webui/push/subscribe",
+    "push.test": "/api/webui/push/test",
     "sidebar.update": "/api/webui/sidebar-state/update",
     "workspace.pick_folder": "/api/workspaces/pick-folder",
     "recovery.continue": "/api/webui/recovery/continue",
@@ -528,6 +531,8 @@ class GatewayHTTPHandler:
             "/api/webui/star-prompt/dismiss",
             "/api/webui/sidebar-state/update",
             "/api/workspaces/pick-folder",
+            "/api/webui/push/subscribe",
+            "/api/webui/push/test",
         }
 
     @staticmethod
@@ -1455,6 +1460,12 @@ class GatewayHTTPHandler:
         m = re.match(r"^/api/webui/skills/([^/]+)$", got)
         if m:
             return self._handle_webui_skill_detail(request, m.group(1))
+        if got == "/api/webui/push/vapid-public-key":
+            return self._handle_push_vapid_public_key(request)
+        if got == "/api/webui/push/subscribe":
+            return self._handle_push_subscribe(request)
+        if got == "/api/webui/push/test":
+            return self._handle_push_test(request)
         if got in {"/api/webui/star-prompt/claim", "/api/webui/star-prompt/dismiss"}:
             if not self.check_api_token(request):
                 return _http_error(401, "Unauthorized")
@@ -1700,6 +1711,67 @@ class GatewayHTTPHandler:
         if not self.check_api_token(request):
             return _http_error(401, "Unauthorized")
         return _http_json_response(read_webui_sidebar_state())
+
+    # -- Web Push ----------------------------------------------------------
+
+    def _handle_push_vapid_public_key(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        try:
+            from nanobot.push import get_push_service
+
+            return _http_json_response(
+                {"publicKey": get_push_service().public_key}
+            )
+        except Exception:
+            self._log.exception("failed to load VAPID keys")
+            return _http_error(500, "failed to load VAPID keys")
+
+    def _handle_push_subscribe(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        payload = _mutation_payload(request)
+        if payload is None:
+            return _http_error(400, "missing payload")
+        endpoint = payload.get("endpoint")
+        if not isinstance(endpoint, str) or not endpoint:
+            return _http_error(400, "missing endpoint")
+        keys = payload.get("keys")
+        try:
+            from nanobot.push import get_push_service
+
+            store = get_push_service().store
+            if keys is None:
+                # Unsubscribe: only endpoint provided
+                removed = store.remove(endpoint)
+                return _http_json_response({"removed": removed})
+            # Subscribe: endpoint + keys provided
+            if not isinstance(keys, dict):
+                return _http_error(400, "missing keys")
+            keys = cast(dict[str, Any], keys)
+            p256dh = keys.get("p256dh")
+            auth = keys.get("auth")
+            if not isinstance(p256dh, str) or not p256dh:
+                return _http_error(400, "missing keys.p256dh")
+            if not isinstance(auth, str) or not auth:
+                return _http_error(400, "missing keys.auth")
+            added = store.add(endpoint, p256dh, auth)
+            return _http_json_response({"added": added})
+        except Exception:
+            self._log.exception("failed to update push subscription")
+            return _http_error(500, "failed to update push subscription")
+
+    def _handle_push_test(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        try:
+            from nanobot.push import get_push_service
+
+            result = get_push_service().notify_test()
+            return _http_json_response(result)
+        except Exception:
+            self._log.exception("push test failed")
+            return _http_error(500, "push test failed")
 
     def _handle_webui_sidebar_state_update(self, request: WsRequest) -> Response:
         if not self.check_api_token(request):
