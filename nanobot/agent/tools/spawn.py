@@ -25,6 +25,20 @@ if TYPE_CHECKING:
     tool_parameters_schema(
         task=StringSchema("The task for the subagent to complete"),
         label=StringSchema("Optional short label for the task (for display)"),
+        model=StringSchema(
+            description=(
+                "Optional model override for this subagent: use a different model "
+                "than the default while keeping the default provider. Mutually "
+                "exclusive with model_preset. Does not change the session default."
+            )
+        ),
+        model_preset=StringSchema(
+            description=(
+                "Optional named model preset override for this subagent (honours the "
+                "preset's own provider, model and generation). Mutually exclusive "
+                "with model. Does not change the session default."
+            )
+        ),
         temperature=NumberSchema(
             description=(
                 "Optional sampling temperature for the subagent "
@@ -84,6 +98,8 @@ class SpawnTool(Tool):
         label: str | None = None,
         temperature: float | None = None,
         wait: bool = False,
+        model: str | None = None,
+        model_preset: str | None = None,
         **kwargs: Any,
     ) -> str:
         """Spawn a subagent to execute the given task."""
@@ -103,5 +119,7 @@ class SpawnTool(Tool):
             session_key=session_key,
             origin_message_id=request_ctx.message_id,
             temperature=temperature,
+            model=model,
+            model_preset=model_preset,
             workspace_scope=current_workspace_scope(),
         )

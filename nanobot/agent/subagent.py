@@ -8,7 +8,7 @@ import time
 import uuid
 import warnings
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
@@ -44,6 +44,7 @@ from nanobot.utils.prompt_templates import render_template
 
 if TYPE_CHECKING:
     from nanobot.agent.memory import Consolidator
+    from nanobot.agent.model_runtime import ModelRuntimeResolver
 
 
 class _SubagentOrigin(TypedDict):
@@ -112,6 +113,7 @@ class SubagentManager:
         max_iterations: int | None = None,
         max_concurrent_subagents: int | None = None,
         consolidator: Consolidator | None = None,
+        runtime_resolver: "ModelRuntimeResolver | None" = None,
     ):
         if workspace is None:
             raise TypeError("SubagentManager.__init__() missing required argument: 'workspace'")
@@ -155,6 +157,7 @@ class SubagentManager:
             else defaults.max_concurrent_subagents
         )
         self.consolidator = consolidator
+        self._runtime_resolver = runtime_resolver
         self._run_slots = asyncio.Semaphore(self.max_concurrent_subagents)
         self.runner = AgentRunner()
         self._exec_session_manager = ExecSessionManager()
@@ -201,6 +204,33 @@ class SubagentManager:
             context_window_tokens=runtime.context_window_tokens,
         )
 
+    def _resolve_override_runtime(
+        self,
+        base: LLMRuntime,
+        *,
+        model: str | None = None,
+        model_preset: str | None = None,
+    ) -> LLMRuntime:
+        """Resolve an optional per-spawn model override without touching defaults.
+
+        ``model_preset`` resolves through the loop's runtime resolver (so a preset's
+        own provider/model/generation are honoured); a bare ``model`` keeps the base
+        runtime's provider and only swaps the model. Neither mutates the default.
+        """
+        if model is None and model_preset is None:
+            return base
+        if model is not None and model_preset is not None:
+            raise ValueError("model and model_preset are mutually exclusive")
+        if model_preset is not None:
+            if self._runtime_resolver is None:
+                raise ValueError(
+                    "model_preset override requires a configured model runtime resolver"
+                )
+            return self._runtime_resolver.resolve_preset(model_preset)
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("model must be a non-empty string")
+        return replace(base, model=model.strip(), model_preset=None)
+
     def _subagent_tools_config(self) -> ToolsConfig:
         """Build a ToolsConfig scoped for subagent use."""
         return ToolsConfig(
@@ -244,10 +274,15 @@ class SubagentManager:
         workspace_scope: WorkspaceScope | None = None,
         *,
         runtime: LLMRuntime | None = None,
+        model: str | None = None,
+        model_preset: str | None = None,
     ) -> str:
         """Spawn a subagent to execute a task in the background."""
         if runtime is None:
             runtime = self._compat_spawn_runtime()
+        runtime = self._resolve_override_runtime(
+            runtime, model=model, model_preset=model_preset
+        )
         if temperature is not None:
             runtime = runtime.with_generation_overrides(temperature=temperature)
         task_id = str(uuid.uuid4())[:8]
@@ -308,10 +343,15 @@ class SubagentManager:
         workspace_scope: WorkspaceScope | None = None,
         *,
         runtime: LLMRuntime | None = None,
+        model: str | None = None,
+        model_preset: str | None = None,
     ) -> str:
         """Run a subagent synchronously and return its result to the caller."""
         if runtime is None:
             runtime = self._compat_spawn_runtime()
+        runtime = self._resolve_override_runtime(
+            runtime, model=model, model_preset=model_preset
+        )
         if temperature is not None:
             runtime = runtime.with_generation_overrides(temperature=temperature)
         task_id = str(uuid.uuid4())[:8]
